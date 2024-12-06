@@ -58,9 +58,9 @@ const authenticateToken = (req, res) => {
 };
 
 
-const convertTimeToSeconds = (timeString) => {
-  const [hours, minutes, seconds] = timeString.split(':').map(Number);
-  return hours * 3600 + minutes * 60 + seconds;
+const convertDurationToSeconds = (durationString) => {
+  const [hours, minutes, seconds] = durationString.split(':').map(Number);
+  return hours * 3600 + minutes * 60 + seconds; // Convert to total seconds
 };
 
 
