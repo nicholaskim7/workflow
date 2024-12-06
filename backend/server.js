@@ -6,17 +6,17 @@ const bcrypt = require('bcryptjs');
 const hostname = 'localhost';
 const port = 5000;
 
-// JWT secret key
-const JWT_SECRET = 'your_jwt_secret_key_';
+// JWT secret key from environment variable
+const JWT_SECRET = process.env.JWT_SECRET; 
 
-// MySQL connection for RDS instance
+// MySQL connection using environment variables
 const connection = mysql.createConnection({
-    host: 'cluster-workflow.c98o2ik8glaa.us-east-2.rds.amazonaws.com', // RDS endpoint
-    user: 'admin', // your MySQL username
-    password: 'Hyuntae010703!', // your MySQL password
-    database: 'app', // your MySQL database name
-    port: 3306, // Default MySQL port
-  });
+    host: process.env.DB_HOST, // MySQL host (RDS endpoint)
+    user: process.env.DB_USER, // MySQL username
+    password: process.env.DB_PASSWORD, // MySQL password
+    database: process.env.DB_NAME, // Database name
+    port: process.env.DB_PORT || 3306, // MySQL port, default to 3306 if not set
+});
 
 // Connect to the database
 connection.connect((err) => {
