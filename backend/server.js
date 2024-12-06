@@ -57,6 +57,13 @@ const authenticateToken = (req, res) => {
   }
 };
 
+
+const convertTimeToSeconds = (timeString) => {
+  const [hours, minutes, seconds] = timeString.split(':').map(Number);
+  return hours * 3600 + minutes * 60 + seconds;
+};
+
+
 // Create an HTTP server
 const server = http.createServer(async (req, res) => {
   //res.setHeader('Access-Control-Allow-Origin', '*');
@@ -262,6 +269,60 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ message: 'Task updated successfully' }));
         });
+    }
+
+        
+    //fetch users study session history
+    else if (req.method === 'GET' && req.url === '/sessions') {
+      const decoded = authenticateToken(req, res);
+      if (!decoded) return;
+    
+      // Modify the query to include SEC_TO_TIME for duration formatting
+      const query = 'SELECT id, text, SEC_TO_TIME(duration) AS formatted_duration, date_added FROM sessions WHERE user_id = ?';
+      connection.query(query, [decoded.user_id], (err, results) => {
+        if (err) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ message: 'Database error' }));
+          return;
+        }
+    
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(results));
+      });
+    }
+
+
+    //add completed study session to users history upon logout or reset of timer
+    else if (req.method === 'POST' && req.url === '/sessions') {
+      const decoded = authenticateToken(req, res);
+      if (!decoded) return;
+    
+      const studyData = await getRequestData(req);
+      if (!studyData.text || !studyData.duration) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Study text and duration are required' }));
+        return;
+      }
+    
+      // Convert duration to seconds if it's a time string (e.g., '00:45:00')
+      let durationInSeconds = studyData.duration;
+      if (typeof durationInSeconds === 'string') {
+        durationInSeconds = convertTimeToSeconds(studyData.duration);
+      }
+    
+      // Insert session into the database with the duration in seconds
+      const insertSql = 'INSERT INTO sessions (user_id, text, duration, date_added) VALUES (?, ?, ?, NOW())';
+      const values = [decoded.user_id, studyData.text, durationInSeconds];
+    
+      connection.query(insertSql, values, (err, results) => {
+        if (err) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ message: 'Error adding study session: ' + err.message }));
+          return;
+        }
+        res.writeHead(201, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ id: results.insertId, text: studyData.text, duration: durationInSeconds }));
+      });
     }
 
 
