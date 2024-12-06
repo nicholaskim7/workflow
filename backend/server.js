@@ -1,0 +1,280 @@
+const http = require('http');
+const mysql = require('mysql2');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+
+const hostname = 'localhost';
+const port = 5000;
+
+// JWT secret key
+const JWT_SECRET = 'your_jwt_secret_key_';
+
+// MySQL connection for RDS instance
+const connection = mysql.createConnection({
+    host: 'cluster-workflow.c98o2ik8glaa.us-east-2.rds.amazonaws.com', // RDS endpoint
+    user: 'admin', // your MySQL username
+    password: 'Hyuntae010703!', // your MySQL password
+    database: 'app', // your MySQL database name
+    port: 3306, // Default MySQL port
+  });
+
+// Connect to the database
+connection.connect((err) => {
+  if (err) {
+    console.error('Error connecting to MySQL:', err.stack);
+    process.exit(1); // Exit on failure
+  }
+  console.log('Connected to MySQL database as id ' + connection.threadId);
+});
+
+// Helper to parse request body data
+const getRequestData = async (req) => {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', (chunk) => (body += chunk.toString()));
+    req.on('end', () => resolve(JSON.parse(body || '{}')));
+    req.on('error', reject);
+  });
+};
+
+// Middleware to authenticate JWT token
+const authenticateToken = (req, res) => {
+  const token = req.headers['authorization']?.split(' ')[1];
+  if (!token) {
+    res.writeHead(401, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ message: 'No token provided' }));
+    return null;
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    return decoded;
+  } catch (err) {
+    res.writeHead(403, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ message: 'Invalid token' }));
+    return null;
+  }
+};
+
+// Create an HTTP server
+const server = http.createServer(async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  console.log(`Incoming request: ${req.method} ${req.url}`);
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  try {
+    // SignUp Route
+    if (req.method === 'POST' && req.url === '/SignUp') {
+      const user = await getRequestData(req);
+      if (!user.username || !user.email || !user.password) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Missing required fields' }));
+        return;
+      }
+
+      const hashedPassword = await bcrypt.hash(user.password, 10);
+      const insertSql = `INSERT INTO users (username, email, password) VALUES (?, ?, ?)`;
+      const values = [user.username, user.email, hashedPassword];
+
+      connection.query(insertSql, values, (err) => {
+        if (err) {
+          console.error('Error inserting user data:', err);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ message: `Error inserting user data: ${err.message}` }));
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'User Information Added Successfully' }));
+      });
+    }
+
+    // SignIn Route
+    else if (req.method === 'POST' && req.url === '/SignIn') {
+      const { email, password } = await getRequestData(req);
+
+      if (!email || !password) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Missing email or password' }));
+        return;
+      }
+
+      connection.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
+        if (err) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ message: 'Database query error' }));
+          return;
+        }
+
+        if (results.length === 0) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ message: 'Invalid email or password' }));
+          return;
+        }
+
+        const user = results[0];
+        const isMatch = await bcrypt.compare(password, user.password);
+
+        if (!isMatch) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ message: 'Invalid email or password' }));
+          return;
+        }
+
+        const token = jwt.sign({ user_id: user.user_id, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Login successful', token }));
+      });
+    }
+
+    // ProfilePage2 Route
+    else if (req.method === 'GET' && req.url === '/ProfilePage2') {
+      const decoded = authenticateToken(req, res);
+      if (!decoded) return;
+
+      const query = 'SELECT user_id, username, email FROM users WHERE email = ?';
+      connection.query(query, [decoded.email], (err, results) => {
+        if (err) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ message: 'Database error' }));
+          return;
+        }
+
+        if (results.length === 0) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ message: 'User not found' }));
+        } else {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(results[0]));
+        }
+      });
+    }
+
+    // Fetch tasks for the authenticated user
+    else if (req.method === 'GET' && req.url === '/tasks') {
+        const decoded = authenticateToken(req, res);
+        if (!decoded) return;
+    
+        const query = 'SELECT * FROM tasks WHERE user_id = ?';
+        connection.query(query, [decoded.user_id], (err, results) => {
+        if (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'Database error' }));
+            return;
+        }
+    
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(results));
+        });
+    }
+
+
+    // Add a new task
+    else if (req.method === 'POST' && req.url === '/tasks') {
+        const decoded = authenticateToken(req, res);
+        if (!decoded) return;
+
+        console.log('Decoded token:', decoded);
+    
+        const taskData = await getRequestData(req);
+        if (!taskData.text) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Task text is required' }));
+        return;
+        }
+    
+        const insertSql = 'INSERT INTO tasks (user_id, text, completed) VALUES (?, ?, ?)';
+        const values = [decoded.user_id, taskData.text, false];
+
+        console.log("Executing query:", insertSql, values);
+    
+        connection.query(insertSql, values, (err, results) => {
+        if (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: `Error adding task: ${err.message}` }));
+            return;
+        }
+    
+        res.writeHead(201, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ id: results.insertId, ...taskData }));
+        });
+    }
+
+
+    // Delete a task by ID
+    else if (req.method === 'DELETE' && req.url.startsWith('/tasks/')) {
+        const decoded = authenticateToken(req, res);
+        if (!decoded) return;
+    
+        const taskId = req.url.split('/')[2];
+        const deleteSql = 'DELETE FROM tasks WHERE id = ? AND user_id = ?';
+    
+        connection.query(deleteSql, [taskId, decoded.user_id], (err, results) => {
+        if (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'Error deleting task' }));
+            return;
+        }
+    
+        if (results.affectedRows === 0) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'Task not found or not authorized' }));
+            return;
+        }
+    
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Task deleted successfully' }));
+        });
+    }
+
+    // Update task status (e.g., mark as completed)
+    else if (req.method === 'PATCH' && req.url.startsWith('/tasks/')) {
+        const decoded = authenticateToken(req, res);
+        if (!decoded) return;
+    
+        const taskId = req.url.split('/')[2];
+        const taskData = await getRequestData(req);
+        const completed = taskData.completed !== undefined ? taskData.completed : false;
+    
+        const updateSql = 'UPDATE tasks SET completed = ? WHERE id = ? AND user_id = ?';
+        connection.query(updateSql, [completed, taskId, decoded.user_id], (err, results) => {
+        if (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'Error updating task' }));
+            return;
+        }
+    
+        if (results.affectedRows === 0) {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'Task not found or not authorized' }));
+            return;
+        }
+    
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Task updated successfully' }));
+        });
+    }
+
+
+    // Default route
+    else {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ message: 'Route not found' }));
+    }
+  } catch (error) {
+    console.error('Server error:', error);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ message: 'Internal server error' }));
+  }
+});
+
+server.listen(port, hostname, () => {
+  console.log(`Server running at http://${hostname}:${port}/`);
+});
