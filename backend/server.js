@@ -3,8 +3,9 @@ const mysql = require('mysql2');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
+// Use dynamic port from environment (Render will provide it)
 const hostname = 'localhost';
-const port = 5000;
+const port = process.env.PORT || 5000;
 
 // JWT secret key from environment variable
 const JWT_SECRET = process.env.JWT_SECRET; 
