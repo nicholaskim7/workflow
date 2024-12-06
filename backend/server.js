@@ -307,7 +307,7 @@ const server = http.createServer(async (req, res) => {
       // Convert duration to seconds if it's a time string (e.g., '00:45:00')
       let durationInSeconds = studyData.duration;
       if (typeof durationInSeconds === 'string') {
-        durationInSeconds = convertTimeToSeconds(studyData.duration);
+        durationInSeconds = convertDurationToSeconds(studyData.duration);
       }
     
       // Insert session into the database with the duration in seconds
