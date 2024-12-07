@@ -298,6 +298,7 @@ const server = http.createServer(async (req, res) => {
       if (!decoded) return;
     
       const studyData = await getRequestData(req);
+      console.log("Received duration:", studyData.duration);
       if (!studyData.text || !studyData.duration) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ message: 'Study text and duration are required' }));
@@ -309,6 +310,7 @@ const server = http.createServer(async (req, res) => {
       if (typeof durationInSeconds === 'string') {
         durationInSeconds = convertDurationToSeconds(studyData.duration);
       }
+      console.log("Converted to seconds:", durationInSeconds);
     
       // Insert session into the database with the duration in seconds
       const insertSql = 'INSERT INTO sessions (user_id, text, duration, date_added) VALUES (?, ?, ?, NOW())';
