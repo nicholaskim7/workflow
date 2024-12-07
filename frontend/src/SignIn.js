@@ -19,6 +19,9 @@ const theme = createTheme({
       main: "#007BFF",
     },
   },
+  typography: {
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+  },
 });
 
 const SignIn = () => {
@@ -39,7 +42,7 @@ const SignIn = () => {
     e.preventDefault();
 
     try {
-      const response = await fetch("http://localhost:5000/SignIn", {
+      const response = await fetch("https://workflowbackend.onrender.com/SignIn", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -71,7 +74,7 @@ const SignIn = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Container component="main" maxWidth="xs">
+      <Container component="main" maxWidth="xs" sx={{ textAlign: "center" }}>
         <Box
           sx={{
             marginTop: 8,
@@ -80,19 +83,24 @@ const SignIn = () => {
             alignItems: "center",
           }}
         >
-          <Typography component="h1" variant="h5">
-            Sign In
+          <Typography component="h1" variant="h4" sx={{ color: "#007BFF", fontWeight: 700 }}>
+            Welcome Back
           </Typography>
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 3 }}>
+          <Typography variant="body1" sx={{ mb: 2, color: "#555" }}>
+            Please log in to your account
+          </Typography>
+          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
             <TextField
               required
               fullWidth
               id="email"
-              label="Email"
+              label="Email Address"
               name="email"
+              autoComplete="email"
               value={formData.email}
               onChange={handleChange}
               margin="normal"
+              sx={{ bgcolor: "#f9f9f9", borderRadius: 1 }}
             />
             <TextField
               required
@@ -101,20 +109,37 @@ const SignIn = () => {
               label="Password"
               name="password"
               type="password"
+              autoComplete="current-password"
               value={formData.password}
               onChange={handleChange}
               margin="normal"
+              sx={{ bgcolor: "#f9f9f9", borderRadius: 1 }}
             />
             <Button
               type="submit"
               fullWidth
               variant="contained"
               color="primary"
-              sx={{ mt: 3, mb: 2 }}
+              sx={{
+                mt: 3,
+                mb: 2,
+                fontWeight: "bold",
+                textTransform: "none",
+                py: 1.5,
+              }}
             >
-              Sign In
+              Log In
             </Button>
           </Box>
+          <Button
+                  onClick={() => navigate("/signup")}
+                  variant="outlined"
+                  color="primary"
+                  fullWidth
+                  sx={{ mt: 2, fontWeight: "bold" }}
+                >
+                  Create new account
+                </Button>
         </Box>
         {/* Snackbar for feedback */}
         <Snackbar
