@@ -295,7 +295,7 @@ const server = http.createServer(async (req, res) => {
 
 
     // Update the flagged status of a task (Unarchive)
-    else if (req.method === 'PATCH' && req.url.startsWith('/tasks/')) {
+    else if (req.method === 'PATCH' && req.url.startsWith('/tasks/unarchive/')) {
         const decoded = authenticateToken(req, res);
         if (!decoded) return;
     
