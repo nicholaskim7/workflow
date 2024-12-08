@@ -223,10 +223,22 @@ const server = http.createServer(async (req, res) => {
                 return;
             }
     
+            // Create a new JWT token for the updated user
+            const newToken = jwt.sign(
+                { user_id: decoded.user_id, username: decoded.username, email: email || decoded.email },
+                'your-secret-key', // Replace with your actual secret key
+                { expiresIn: '1h' } // Set the token expiry time
+            );
+    
+            // Return the updated token in the response
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ message: 'Account information updated successfully.' }));
+            res.end(JSON.stringify({
+                message: 'Account information updated successfully.',
+                newToken: newToken, // Include the new token
+            }));
         });
     }
+
         
 
     // Fetch tasks for the authenticated user
