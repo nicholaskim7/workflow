@@ -266,7 +266,7 @@ const server = http.createServer(async (req, res) => {
 
         
     // Update task status (e.g., mark as completed)
-    else if (req.method === 'PATCH' && req.url.startsWith('/tasks/complete')) {
+    else if (req.method === 'PATCH' && req.url.startsWith('/tasks/complete/')) {
         const decoded = authenticateToken(req, res);
         if (!decoded) return;
     
