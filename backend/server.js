@@ -299,32 +299,40 @@ const server = http.createServer(async (req, res) => {
         const decoded = authenticateToken(req, res);
         if (!decoded) return;
     
-        const taskId = req.url.split('/')[3];
+        // Extract taskId using regex for better clarity
+        const taskIdMatch = req.url.match(/\/tasks\/unarchive\/(\d+)/);
+        if (!taskIdMatch) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'Invalid task ID format' }));
+            return;
+        }
+        const taskId = taskIdMatch[1];
+    
         const { flagged } = req.body; // Expecting flagged to be a boolean value (false for unarchive)
     
         if (typeof flagged !== 'boolean') {
             res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ message: 'Invalid value for flagged' }));
+            res.end(JSON.stringify({ message: 'Invalid value for flagged, expected a boolean' }));
             return;
         }
     
         const updateSql = 'UPDATE tasks SET flagged = ? WHERE id = ? AND user_id = ?';
-        
+    
         connection.query(updateSql, [flagged, taskId, decoded.user_id], (err, results) => {
             if (err) {
                 res.writeHead(500, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ message: 'Error updating task' }));
+                res.end(JSON.stringify({ message: 'Error updating task in database', error: err }));
                 return;
             }
     
             if (results.affectedRows === 0) {
                 res.writeHead(404, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ message: 'Task not found or not authorized' }));
+                res.end(JSON.stringify({ message: 'Task not found or not authorized to update this task' }));
                 return;
             }
     
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ message: 'Task updated successfully' }));
+            res.end(JSON.stringify({ message: 'Task unarchived successfully' }));
         });
     }
 
