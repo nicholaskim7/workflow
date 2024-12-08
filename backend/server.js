@@ -299,40 +299,35 @@ const server = http.createServer(async (req, res) => {
         const decoded = authenticateToken(req, res);
         if (!decoded) return;
     
-        // Extract taskId using regex for better clarity
-        const taskIdMatch = req.url.match(/\/tasks\/unarchive\/(\d+)/);
-        if (!taskIdMatch) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ message: 'Invalid task ID format' }));
-            return;
-        }
-        const taskId = taskIdMatch[1];
-    
+        const taskId = req.url.split('/')[3];
         const { flagged } = req.body; // Expecting flagged to be a boolean value (false for unarchive)
     
         if (typeof flagged !== 'boolean') {
             res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ message: 'Invalid value for flagged, expected a boolean' }));
+            res.end(JSON.stringify({ message: 'Invalid value for flagged' }));
             return;
         }
     
-        const updateSql = 'UPDATE tasks SET flagged = ? WHERE id = ? AND user_id = ?';
+        // Convert boolean to 0 or 1 for MySQL (0 for false, 1 for true)
+        const flaggedValue = flagged ? 1 : 0;
     
-        connection.query(updateSql, [flagged, taskId, decoded.user_id], (err, results) => {
+        const updateSql = 'UPDATE tasks SET flagged = ? WHERE id = ? AND user_id = ?';
+        
+        connection.query(updateSql, [flaggedValue, taskId, decoded.user_id], (err, results) => {
             if (err) {
                 res.writeHead(500, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ message: 'Error updating task in database', error: err }));
+                res.end(JSON.stringify({ message: 'Error updating task' }));
                 return;
             }
     
             if (results.affectedRows === 0) {
                 res.writeHead(404, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ message: 'Task not found or not authorized to update this task' }));
+                res.end(JSON.stringify({ message: 'Task not found or not authorized' }));
                 return;
             }
     
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ message: 'Task unarchived successfully' }));
+            res.end(JSON.stringify({ message: 'Task updated successfully' }));
         });
     }
 
