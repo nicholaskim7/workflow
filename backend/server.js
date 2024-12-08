@@ -218,8 +218,8 @@ const server = http.createServer(async (req, res) => {
         return;
         }
     
-        const insertSql = 'INSERT INTO tasks (user_id, text, completed) VALUES (?, ?, ?)';
-        const values = [decoded.user_id, taskData.text, false];
+        const insertSql = 'INSERT INTO tasks (user_id, text, completed, flagged) VALUES (?, ?, ?, ?)';
+        const values = [decoded.user_id, taskData.text, false, false];
 
         console.log("Executing query:", insertSql, values);
     
@@ -290,6 +290,41 @@ const server = http.createServer(async (req, res) => {
     
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ message: 'Task updated successfully' }));
+        });
+    }
+
+
+    // Update the flagged status of a task (Unarchive)
+    else if (req.method === 'PATCH' && req.url.startsWith('/tasks/')) {
+        const decoded = authenticateToken(req, res);
+        if (!decoded) return;
+    
+        const taskId = req.url.split('/')[2];
+        const { flagged } = req.body; // Expecting flagged to be a boolean value (false for unarchive)
+    
+        if (typeof flagged !== 'boolean') {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'Invalid value for flagged' }));
+            return;
+        }
+    
+        const updateSql = 'UPDATE tasks SET flagged = ? WHERE id = ? AND user_id = ?';
+        
+        connection.query(updateSql, [flagged, taskId, decoded.user_id], (err, results) => {
+            if (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ message: 'Error updating task' }));
+                return;
+            }
+    
+            if (results.affectedRows === 0) {
+                res.writeHead(404, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ message: 'Task not found or not authorized' }));
+                return;
+            }
+    
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'Task updated successfully' }));
         });
     }
 
