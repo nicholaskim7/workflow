@@ -299,7 +299,7 @@ const server = http.createServer(async (req, res) => {
         const decoded = authenticateToken(req, res);
         if (!decoded) return;
     
-        const taskId = req.url.split('/')[2];
+        const taskId = req.url.split('/')[3];
         const { flagged } = req.body; // Expecting flagged to be a boolean value (false for unarchive)
     
         if (typeof flagged !== 'boolean') {
