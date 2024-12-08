@@ -300,20 +300,12 @@ const server = http.createServer(async (req, res) => {
         if (!decoded) return;
     
         const taskId = req.url.split('/')[3];
-        const { flagged } = req.body; // Expecting flagged to be a boolean value (false for unarchive)
-    
-        if (typeof flagged !== 'boolean') {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ message: 'Invalid value for flagged' }));
-            return;
-        }
-    
-        // Convert boolean to 0 or 1 for MySQL (0 for false, 1 for true)
-        const flaggedValue = flagged ? 1 : 0;
+        const taskData = await getRequestData(req);
+        const flagged = taskData.flagged !== undefined ? taskData.flagged : false;  // Use false for unarchiving (flagged = 0)
     
         const updateSql = 'UPDATE tasks SET flagged = ? WHERE id = ? AND user_id = ?';
-        
-        connection.query(updateSql, [flaggedValue, taskId, decoded.user_id], (err, results) => {
+    
+        connection.query(updateSql, [flagged ? 1 : 0, taskId, decoded.user_id], (err, results) => {
             if (err) {
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ message: 'Error updating task' }));
