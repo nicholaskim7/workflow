@@ -171,7 +171,26 @@ const server = http.createServer(async (req, res) => {
         const decoded = authenticateToken(req, res);
         if (!decoded) return;
     
-        const query = 'SELECT * FROM tasks WHERE user_id = ?';
+        const query = 'SELECT * FROM tasks WHERE user_id = ? AND flagged = FALSE';
+        connection.query(query, [decoded.user_id], (err, results) => {
+        if (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'Database error' }));
+            return;
+        }
+    
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(results));
+        });
+    }
+
+
+    // Fetch archived tasks for the authenticated user
+    else if (req.method === 'GET' && req.url === '/archived-tasks') {
+        const decoded = authenticateToken(req, res);
+        if (!decoded) return;
+    
+        const query = 'SELECT * FROM tasks WHERE user_id = ? AND flagged = TRUE';
         connection.query(query, [decoded.user_id], (err, results) => {
         if (err) {
             res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -217,32 +236,35 @@ const server = http.createServer(async (req, res) => {
     }
 
 
-    // Delete a task by ID
+    // Flag a task by ID instead of deleting it
     else if (req.method === 'DELETE' && req.url.startsWith('/tasks/')) {
         const decoded = authenticateToken(req, res);
         if (!decoded) return;
     
         const taskId = req.url.split('/')[2];
-        const deleteSql = 'DELETE FROM tasks WHERE id = ? AND user_id = ?';
     
-        connection.query(deleteSql, [taskId, decoded.user_id], (err, results) => {
-        if (err) {
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ message: 'Error deleting task' }));
-            return;
-        }
+        // Update the task's 'flagged' status to true
+        const flagSql = 'UPDATE tasks SET flagged = TRUE WHERE id = ? AND user_id = ?';
     
-        if (results.affectedRows === 0) {
-            res.writeHead(404, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ message: 'Task not found or not authorized' }));
-            return;
-        }
+        connection.query(flagSql, [taskId, decoded.user_id], (err, results) => {
+            if (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ message: 'Error flagging task' }));
+                return;
+            }
     
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ message: 'Task deleted successfully' }));
+            if (results.affectedRows === 0) {
+                res.writeHead(404, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ message: 'Task not found or not authorized' }));
+                return;
+            }
+    
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'Task flagged successfully' }));
         });
     }
 
+        
     // Update task status (e.g., mark as completed)
     else if (req.method === 'PATCH' && req.url.startsWith('/tasks/')) {
         const decoded = authenticateToken(req, res);
