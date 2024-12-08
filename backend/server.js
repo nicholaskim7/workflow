@@ -166,6 +166,69 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
+
+    // Update account information
+    else if (req.method === 'PATCH' && req.url === '/update-account') {
+        const decoded = authenticateToken(req, res);
+        if (!decoded) return;
+    
+        const userData = await getRequestData(req);
+        const { username, email, password } = userData;
+    
+        if (!username && !email && !password) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'No fields provided to update.' }));
+            return;
+        }
+    
+        // Prepare fields and values for the SQL query
+        const fields = [];
+        const values = [];
+    
+        if (username) {
+            fields.push('username = ?');
+            values.push(username);
+        }
+        if (email) {
+            fields.push('email = ?');
+            values.push(email);
+        }
+        if (password) {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            fields.push('password = ?');
+            values.push(hashedPassword);
+        }
+    
+        if (fields.length === 0) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'No valid fields to update.' }));
+            return;
+        }
+    
+        values.push(decoded.user_id); // Add user_id for the WHERE clause
+    
+        const updateSql = `UPDATE users SET ${fields.join(', ')} WHERE user_id = ?`;
+    
+        connection.query(updateSql, values, (err, results) => {
+            if (err) {
+                console.error('Error updating user data:', err);
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ message: 'Failed to update account information.' }));
+                return;
+            }
+    
+            if (results.affectedRows === 0) {
+                res.writeHead(404, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ message: 'User not found.' }));
+                return;
+            }
+    
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'Account information updated successfully.' }));
+        });
+    }
+        
+
     // Fetch tasks for the authenticated user
     else if (req.method === 'GET' && req.url === '/tasks') {
         const decoded = authenticateToken(req, res);
