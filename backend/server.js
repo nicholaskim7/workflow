@@ -419,6 +419,77 @@ const server = http.createServer(async (req, res) => {
     }
 
 
+    // Fetch top locked-in users based on total study hours
+    else if (req.method === 'GET' && req.url.startsWith('/top-users')) {
+      const decoded = authenticateToken(req, res);
+      if (!decoded) return;
+    
+      // Extract timeframe from query parameters (e.g., 'all-time', 'this-month', 'this-year', 'today')
+      const url = new URL(req.url, `http://${req.headers.host}`);
+      const timeframe = url.searchParams.get('timeframe') || 'all-time';
+    
+      // Build SQL query based on the timeframe
+      let query;
+      const params = [];
+    
+      if (timeframe === 'this-month') {
+        query = `
+          SELECT users.id, users.username, SUM(sessions.duration) / 3600 AS total_hours
+          FROM users
+          JOIN sessions ON users.id = sessions.user_id
+          WHERE MONTH(sessions.date_added) = MONTH(CURRENT_DATE())
+            AND YEAR(sessions.date_added) = YEAR(CURRENT_DATE())
+          GROUP BY users.id
+          ORDER BY total_hours DESC
+          LIMIT 20;
+        `;
+      } else if (timeframe === 'this-year') {
+        query = `
+          SELECT users.id, users.username, SUM(sessions.duration) / 3600 AS total_hours
+          FROM users
+          JOIN sessions ON users.id = sessions.user_id
+          WHERE YEAR(sessions.date_added) = YEAR(CURRENT_DATE())
+          GROUP BY users.id
+          ORDER BY total_hours DESC
+          LIMIT 20;
+        `;
+      } else if (timeframe === 'today') {
+        query = `
+          SELECT users.id, users.username, SUM(sessions.duration) / 3600 AS total_hours
+          FROM users
+          JOIN sessions ON users.id = sessions.user_id
+          WHERE DATE(sessions.date_added) = CURRENT_DATE()
+          GROUP BY users.id
+          ORDER BY total_hours DESC
+          LIMIT 20;
+        `;
+      } else {
+        // Default: All-time
+        query = `
+          SELECT users.id, users.username, SUM(sessions.duration) / 3600 AS total_hours
+          FROM users
+          JOIN sessions ON users.id = sessions.user_id
+          GROUP BY users.id
+          ORDER BY total_hours DESC
+          LIMIT 20;
+        `;
+      }
+    
+      // Execute the query
+      connection.query(query, params, (err, results) => {
+        if (err) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ message: 'Database error' }));
+          return;
+        }
+    
+        // Respond with the top users
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(results));
+      });
+    }
+
+
     //add completed study session to users history upon logout or reset of timer
     else if (req.method === 'POST' && req.url === '/sessions') {
       const decoded = authenticateToken(req, res);
