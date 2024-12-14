@@ -422,7 +422,11 @@ const server = http.createServer(async (req, res) => {
     // Fetch top locked-in users based on total study hours
     else if (req.method === 'GET' && req.url.startsWith('/top-users')) {
       const decoded = authenticateToken(req, res);
-      if (!decoded) return;
+      if (!decoded) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Unauthorized' }));
+        return;
+      }
     
       // Extract timeframe from query parameters (e.g., 'all-time', 'this-month', 'this-year', 'today')
       const url = new URL(req.url, `http://${req.headers.host}`);
