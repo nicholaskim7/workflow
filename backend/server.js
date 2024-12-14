@@ -422,6 +422,8 @@ const server = http.createServer(async (req, res) => {
     // Fetch top locked-in users based on total study hours
     else if (req.method === 'GET' && req.url.startsWith('/top-users')) {
       const decoded = authenticateToken(req, res);
+      
+      // Check if the user is authenticated
       if (!decoded) {
         res.writeHead(401, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ message: 'Unauthorized' }));
@@ -430,12 +432,13 @@ const server = http.createServer(async (req, res) => {
     
       // Extract timeframe from query parameters (e.g., 'all-time', 'this-month', 'this-year', 'today')
       const url = new URL(req.url, `http://${req.headers.host}`);
-      const timeframe = url.searchParams.get('timeframe') || 'all-time';
+      const timeframe = url.searchParams.get('timeframe') || 'all-time';  // Default to 'all-time' if no timeframe is provided
     
       // Build SQL query based on the timeframe
       let query;
       const params = [];
     
+      // Define SQL queries based on the timeframe
       if (timeframe === 'this-month') {
         query = `
           SELECT users.id, users.username, SUM(sessions.duration) / 3600 AS total_hours
@@ -482,14 +485,15 @@ const server = http.createServer(async (req, res) => {
       // Execute the query
       connection.query(query, params, (err, results) => {
         if (err) {
+          console.error('Database error:', err);  // Log the error for debugging
           res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ message: 'Database error' }));
+          res.end(JSON.stringify({ message: 'Database error', error: err.message }));
           return;
         }
     
-        // Respond with the top users
+        // Ensure the response is JSON
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(results));
+        res.end(JSON.stringify(results));  // Send the query results as JSON
       });
     }
 
