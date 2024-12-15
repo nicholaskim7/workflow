@@ -452,8 +452,8 @@ const server = http.createServer(async (req, res) => {
                  IFNULL(SUM(sessions.duration) / 3600, 0) AS total_hours
           FROM users
           LEFT JOIN sessions ON users.user_id = sessions.user_id
-          WHERE MONTH(sessions.date_added) = MONTH(CURRENT_DATE())
-            AND YEAR(sessions.date_added) = YEAR(CURRENT_DATE())
+          AND MONTH(sessions.date_added) = MONTH(CURRENT_DATE())
+          AND YEAR(sessions.date_added) = YEAR(CURRENT_DATE())
           GROUP BY users.user_id
           ORDER BY total_hours DESC
           LIMIT 20;
@@ -464,7 +464,7 @@ const server = http.createServer(async (req, res) => {
                  IFNULL(SUM(sessions.duration) / 3600, 0) AS total_hours
           FROM users
           LEFT JOIN sessions ON users.user_id = sessions.user_id
-          WHERE YEAR(sessions.date_added) = YEAR(CURRENT_DATE())
+          AND YEAR(sessions.date_added) = YEAR(CURRENT_DATE())
           GROUP BY users.user_id
           ORDER BY total_hours DESC
           LIMIT 20;
@@ -475,7 +475,7 @@ const server = http.createServer(async (req, res) => {
                  IFNULL(SUM(sessions.duration) / 3600, 0) AS total_hours
           FROM users
           LEFT JOIN sessions ON users.user_id = sessions.user_id
-          WHERE DATE(sessions.date_added) = CURRENT_DATE()
+          AND DATE(sessions.date_added) = CURRENT_DATE()
           GROUP BY users.user_id
           ORDER BY total_hours DESC
           LIMIT 20;
