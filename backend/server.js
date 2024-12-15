@@ -448,9 +448,10 @@ const server = http.createServer(async (req, res) => {
     
       if (timeframe === 'this-month') {
         query = `
-          SELECT users.user_id, users.username, SUM(sessions.duration) / 3600 AS total_hours
+          SELECT users.user_id, users.username, 
+                 IFNULL(SUM(sessions.duration) / 3600, 0) AS total_hours
           FROM users
-          JOIN sessions ON users.user_id = sessions.user_id
+          LEFT JOIN sessions ON users.user_id = sessions.user_id
           WHERE MONTH(sessions.date_added) = MONTH(CURRENT_DATE())
             AND YEAR(sessions.date_added) = YEAR(CURRENT_DATE())
           GROUP BY users.user_id
@@ -459,9 +460,10 @@ const server = http.createServer(async (req, res) => {
         `;
       } else if (timeframe === 'this-year') {
         query = `
-          SELECT users.user_id, users.username, SUM(sessions.duration) / 3600 AS total_hours
+          SELECT users.user_id, users.username, 
+                 IFNULL(SUM(sessions.duration) / 3600, 0) AS total_hours
           FROM users
-          JOIN sessions ON users.user_id = sessions.user_id
+          LEFT JOIN sessions ON users.user_id = sessions.user_id
           WHERE YEAR(sessions.date_added) = YEAR(CURRENT_DATE())
           GROUP BY users.user_id
           ORDER BY total_hours DESC
@@ -469,9 +471,10 @@ const server = http.createServer(async (req, res) => {
         `;
       } else if (timeframe === 'today') {
         query = `
-          SELECT users.user_id, users.username, SUM(sessions.duration) / 3600 AS total_hours
+          SELECT users.user_id, users.username, 
+                 IFNULL(SUM(sessions.duration) / 3600, 0) AS total_hours
           FROM users
-          JOIN sessions ON users.user_id = sessions.user_id
+          LEFT JOIN sessions ON users.user_id = sessions.user_id
           WHERE DATE(sessions.date_added) = CURRENT_DATE()
           GROUP BY users.user_id
           ORDER BY total_hours DESC
@@ -480,9 +483,10 @@ const server = http.createServer(async (req, res) => {
       } else {
         // Default: All-time
         query = `
-          SELECT users.user_id, users.username, SUM(sessions.duration) / 3600 AS total_hours
+          SELECT users.user_id, users.username, 
+                 IFNULL(SUM(sessions.duration) / 3600, 0) AS total_hours
           FROM users
-          JOIN sessions ON users.user_id = sessions.user_id
+          LEFT JOIN sessions ON users.user_id = sessions.user_id
           GROUP BY users.user_id
           ORDER BY total_hours DESC
           LIMIT 20;
@@ -497,6 +501,12 @@ const server = http.createServer(async (req, res) => {
           res.end(JSON.stringify({ message: 'Database error', error: err.message }));
           return;
         }
+    
+        // Ensure total_hours is never null or undefined
+        results = results.map(user => ({
+          ...user,
+          total_hours: user.total_hours ? user.total_hours : 0
+        }));
     
         // Send results
         res.writeHead(200, { 'Content-Type': 'application/json' });
