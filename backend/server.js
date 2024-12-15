@@ -515,7 +515,6 @@ const server = http.createServer(async (req, res) => {
     }
 
 
-
     //add completed study session to users history upon logout or reset of timer
     else if (req.method === 'POST' && req.url === '/sessions') {
       const decoded = authenticateToken(req, res);
