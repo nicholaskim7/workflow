@@ -422,7 +422,7 @@ const server = http.createServer(async (req, res) => {
     // Fetch top locked-in users based on total study hours
     else if (req.method === 'GET' && req.url.startsWith('/top-users')) {
       const decoded = authenticateToken(req, res);
-      
+    
       // Check if the user is authenticated
       if (!decoded) {
         res.writeHead(401, { 'Content-Type': 'application/json' });
@@ -430,15 +430,22 @@ const server = http.createServer(async (req, res) => {
         return;
       }
     
-      // Extract timeframe from query parameters (e.g., 'all-time', 'this-month', 'this-year', 'today')
-      const url = new URL(req.url, `http://${req.headers.host}`);
-      const timeframe = url.searchParams.get('timeframe') || 'all-time';  // Default to 'all-time' if no timeframe is provided
+      // Extract timeframe from query parameters
+      const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
+      const timeframe = parsedUrl.searchParams.get('timeframe') || 'all-time'; // Default to 'all-time'
     
-      // Build SQL query based on the timeframe
+      // Validate timeframe
+      const validTimeframes = ['today', 'this-month', 'this-year', 'all-time'];
+      if (!validTimeframes.includes(timeframe)) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Invalid timeframe parameter' }));
+        return;
+      }
+    
+      // Build SQL query and parameters
       let query;
       const params = [];
     
-      // Define SQL queries based on the timeframe
       if (timeframe === 'this-month') {
         query = `
           SELECT users.id, users.username, SUM(sessions.duration) / 3600 AS total_hours
@@ -485,17 +492,18 @@ const server = http.createServer(async (req, res) => {
       // Execute the query
       connection.query(query, params, (err, results) => {
         if (err) {
-          console.error('Database error:', err);  // Log the error for debugging
+          console.error('Database error:', err);
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ message: 'Database error', error: err.message }));
           return;
         }
     
-        // Ensure the response is JSON
+        // Send results
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(results));  // Send the query results as JSON
+        res.end(JSON.stringify(results));
       });
     }
+
 
 
     //add completed study session to users history upon logout or reset of timer
