@@ -449,7 +449,7 @@ const server = http.createServer(async (req, res) => {
       if (timeframe === 'this-month') {
         query = `
           SELECT users.user_id, users.username, 
-                 IFNULL(SUM(sessions.duration), 0) / 3600 AS total_hours
+                 IFNULL(SUM(sessions.duration) / 3600, 0) AS total_hours
           FROM users
           LEFT JOIN sessions ON users.user_id = sessions.user_id
           WHERE MONTH(sessions.date_added) = MONTH(CURRENT_DATE())
@@ -461,7 +461,7 @@ const server = http.createServer(async (req, res) => {
       } else if (timeframe === 'this-year') {
         query = `
           SELECT users.user_id, users.username, 
-                 IFNULL(SUM(sessions.duration), 0) / 3600 AS total_hours
+                 IFNULL(SUM(sessions.duration) / 3600, 0) AS total_hours
           FROM users
           LEFT JOIN sessions ON users.user_id = sessions.user_id
           WHERE YEAR(sessions.date_added) = YEAR(CURRENT_DATE())
@@ -472,7 +472,7 @@ const server = http.createServer(async (req, res) => {
       } else if (timeframe === 'today') {
         query = `
           SELECT users.user_id, users.username, 
-                 IFNULL(SUM(sessions.duration), 0) / 3600 AS total_hours
+                 IFNULL(SUM(sessions.duration) / 3600, 0) AS total_hours
           FROM users
           LEFT JOIN sessions ON users.user_id = sessions.user_id
           WHERE DATE(sessions.date_added) = CURRENT_DATE()
@@ -484,7 +484,7 @@ const server = http.createServer(async (req, res) => {
         // Default: All-time
         query = `
           SELECT users.user_id, users.username, 
-                 IFNULL(SUM(sessions.duration), 0) / 3600 AS total_hours
+                 IFNULL(SUM(sessions.duration) / 3600, 0) AS total_hours
           FROM users
           LEFT JOIN sessions ON users.user_id = sessions.user_id
           GROUP BY users.user_id
@@ -513,6 +513,7 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify(results));
       });
     }
+
 
 
     //add completed study session to users history upon logout or reset of timer
