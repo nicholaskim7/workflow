@@ -448,42 +448,42 @@ const server = http.createServer(async (req, res) => {
     
       if (timeframe === 'this-month') {
         query = `
-          SELECT users.id, users.username, SUM(sessions.duration) / 3600 AS total_hours
+          SELECT users.user_id, users.username, SUM(sessions.duration) / 3600 AS total_hours
           FROM users
-          JOIN sessions ON users.id = sessions.user_id
+          JOIN sessions ON users.user_id = sessions.user_id
           WHERE MONTH(sessions.date_added) = MONTH(CURRENT_DATE())
             AND YEAR(sessions.date_added) = YEAR(CURRENT_DATE())
-          GROUP BY users.id
+          GROUP BY users.user_id
           ORDER BY total_hours DESC
           LIMIT 20;
         `;
       } else if (timeframe === 'this-year') {
         query = `
-          SELECT users.id, users.username, SUM(sessions.duration) / 3600 AS total_hours
+          SELECT users.user_id, users.username, SUM(sessions.duration) / 3600 AS total_hours
           FROM users
-          JOIN sessions ON users.id = sessions.user_id
+          JOIN sessions ON users.user_id = sessions.user_id
           WHERE YEAR(sessions.date_added) = YEAR(CURRENT_DATE())
-          GROUP BY users.id
+          GROUP BY users.user_id
           ORDER BY total_hours DESC
           LIMIT 20;
         `;
       } else if (timeframe === 'today') {
         query = `
-          SELECT users.id, users.username, SUM(sessions.duration) / 3600 AS total_hours
+          SELECT users.user_id, users.username, SUM(sessions.duration) / 3600 AS total_hours
           FROM users
-          JOIN sessions ON users.id = sessions.user_id
+          JOIN sessions ON users.user_id = sessions.user_id
           WHERE DATE(sessions.date_added) = CURRENT_DATE()
-          GROUP BY users.id
+          GROUP BY users.user_id
           ORDER BY total_hours DESC
           LIMIT 20;
         `;
       } else {
         // Default: All-time
         query = `
-          SELECT users.id, users.username, SUM(sessions.duration) / 3600 AS total_hours
+          SELECT users.user_id, users.username, SUM(sessions.duration) / 3600 AS total_hours
           FROM users
-          JOIN sessions ON users.id = sessions.user_id
-          GROUP BY users.id
+          JOIN sessions ON users.user_id = sessions.user_id
+          GROUP BY users.user_id
           ORDER BY total_hours DESC
           LIMIT 20;
         `;
