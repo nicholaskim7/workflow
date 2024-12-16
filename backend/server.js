@@ -148,7 +148,7 @@ const server = http.createServer(async (req, res) => {
       const decoded = authenticateToken(req, res);
       if (!decoded) return;
 
-      const query = 'SELECT user_id, username, email FROM users WHERE email = ?';
+      const query = 'SELECT user_id, username, email, user_level FROM users WHERE email = ?';
       connection.query(query, [decoded.email], (err, results) => {
         if (err) {
           res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -448,7 +448,7 @@ const server = http.createServer(async (req, res) => {
     
       if (timeframe === 'this-month') {
         query = `
-          SELECT users.user_id, users.username, 
+          SELECT users.user_id, users.username, users.user_level,
                  IFNULL(SUM(sessions.duration) / 3600, 0) AS total_hours
           FROM users
           LEFT JOIN sessions ON users.user_id = sessions.user_id
@@ -460,7 +460,7 @@ const server = http.createServer(async (req, res) => {
         `;
       } else if (timeframe === 'this-year') {
         query = `
-          SELECT users.user_id, users.username, 
+          SELECT users.user_id, users.username, users.user_level,
                  IFNULL(SUM(sessions.duration) / 3600, 0) AS total_hours
           FROM users
           LEFT JOIN sessions ON users.user_id = sessions.user_id
@@ -471,7 +471,7 @@ const server = http.createServer(async (req, res) => {
         `;
       } else if (timeframe === 'today') {
         query = `
-          SELECT users.user_id, users.username, 
+          SELECT users.user_id, users.username, users.user_level,
                  IFNULL(SUM(sessions.duration) / 3600, 0) AS total_hours
           FROM users
           LEFT JOIN sessions ON users.user_id = sessions.user_id
@@ -483,7 +483,7 @@ const server = http.createServer(async (req, res) => {
       } else {
         // Default: All-time
         query = `
-          SELECT users.user_id, users.username, 
+          SELECT users.user_id, users.username, users.user_level,
                  IFNULL(SUM(sessions.duration) / 3600, 0) AS total_hours
           FROM users
           LEFT JOIN sessions ON users.user_id = sessions.user_id
