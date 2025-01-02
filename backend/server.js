@@ -552,31 +552,32 @@ const server = http.createServer(async (req, res) => {
     }
 
     else if (req.method === 'POST' && req.url === '/blog') {
-      const decoded = authenticateToken(req, res);
-      if (!decoded) return;
-  
-      const { title, text } = await getRequestData(req);
-      if (!title || !text) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ message: 'Missing title or text' }));
-          return;
-      }
-  
-      const insertSql = `INSERT INTO blogs (user_id, title, text) VALUES (?, ?, ?)`;
-      const values = [decoded.user_id, title, text];
-  
-      connection.query(insertSql, values, (err) => {
-          if (err) {
-              console.error('Error inserting blog post:', err);
-              res.writeHead(500, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ message: 'Database error' }));
-              return;
-          }
-  
-          res.writeHead(201, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ message: 'Blog post created successfully' }));
-      });
-  }
+    const decoded = authenticateToken(req, res);
+    if (!decoded) return;
+
+    const { title, text } = await getRequestData(req);
+    if (!title || !text) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Missing title or text' }));
+        return;
+    }
+
+    // Add CURDATE() for created_at to insert the current date automatically
+    const insertSql = `INSERT INTO blogs (user_id, title, text, created_at) VALUES (?, ?, ?, CURDATE())`;
+    const values = [decoded.user_id, title, text];
+
+    connection.query(insertSql, values, (err) => {
+        if (err) {
+            console.error('Error inserting blog post:', err);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'Database error' }));
+            return;
+        }
+
+        res.writeHead(201, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Blog post created successfully' }));
+    });
+}
 
 
     // Default route
