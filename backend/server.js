@@ -608,7 +608,11 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     
-    const query = 'SELECT blog_id, text, title, created_at FROM blogs';
+    const query = `
+        SELECT b.blog_id, b.text, b.title, b.created_at, u.username
+        FROM blogs b
+        JOIN users u ON b.user_id = u.user_id
+    `;
     connection.query(query, (err, results) => {
       if (err) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
