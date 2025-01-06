@@ -579,6 +579,48 @@ const server = http.createServer(async (req, res) => {
     });
 }
 
+//fetch blog posts
+  else if (req.method === 'GET' && req.url === '/blog') {
+    const decoded = authenticateToken(req, res);
+    if (!decoded) return;
+  
+    
+    const query = 'SELECT blog_id, text, title, created_at FROM blogs WHERE user_id = ?';
+    connection.query(query, [decoded.user_id], (err, results) => {
+      if (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Database error' }));
+        return;
+      }
+  
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(results));
+    });
+  }
+
+  //fetch all blog posts
+  else if (req.method === 'GET' && req.url === '/blog-all') {
+    const decoded = authenticateToken(req, res);
+
+    if (!decoded) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ message: 'Unauthorized' }));
+      return;
+    }
+    
+    const query = 'SELECT blog_id, text, title, created_at FROM blogs';
+    connection.query(query, (err, results) => {
+      if (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Database error' }));
+        return;
+      }
+  
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(results));
+    });
+  }
+
 
     // Default route
     else {
