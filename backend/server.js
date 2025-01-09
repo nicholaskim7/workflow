@@ -647,12 +647,10 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Extract query parameters from the URL
   const url = new URL(req.url, `http://${req.headers.host}`);
   const topic = url.searchParams.get('topic');
   const username = url.searchParams.get('username');
 
-  // Base query
   let query = `
       SELECT 
           b.blog_id, 
@@ -671,20 +669,19 @@ const server = http.createServer(async (req, res) => {
           b.flagged = FALSE
   `;
 
-  // Add conditions based on the provided query parameters
   const conditions = [];
   const params = [];
   if (topic) {
     conditions.push('b.topic LIKE ?');
-    params.push(`%${topic}%`); // Use LIKE with wildcards for partial matches
+    params.push(`%${topic}%`);
   }
   if (username) {
     conditions.push('u.username LIKE ?');
-    params.push(`%${username}%`); // Use LIKE with wildcards for partial matches
+    params.push(`%${username}%`);
   }
 
   if (conditions.length > 0) {
-    query += ` AND ${conditions.join(' AND ')}`;
+    query += ` AND (${conditions.join(' OR ')})`;
   }
 
   connection.query(query, params, (err, results) => {
