@@ -609,10 +609,21 @@ const server = http.createServer(async (req, res) => {
     }
     
     const query = `
-        SELECT b.blog_id, b.topic, b.text, b.title, b.created_at, u.username
-        FROM blogs b
-        WHERE b.flagged = FALSE'
-        JOIN users u ON b.user_id = u.user_id
+        SELECT 
+            b.blog_id, 
+            b.topic, 
+            b.text, 
+            b.title, 
+            b.created_at, 
+            u.username
+        FROM 
+            blogs b
+        JOIN 
+            users u 
+        ON 
+            b.user_id = u.user_id
+        WHERE 
+            b.flagged = FALSE;
     `;
     connection.query(query, (err, results) => {
       if (err) {
