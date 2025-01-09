@@ -555,15 +555,15 @@ const server = http.createServer(async (req, res) => {
     const decoded = authenticateToken(req, res);
     if (!decoded) return;
 
-    const { title, text } = await getRequestData(req);
-    if (!title || !text) {
+    const { topic, title, text } = await getRequestData(req);
+    if (!topic || !title || !text) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ message: 'Missing title or text' }));
+        res.end(JSON.stringify({ message: 'Missing topic, title, or text' }));
         return;
     }
 
     // Add CURDATE() for created_at to insert the current date automatically
-    const insertSql = 'INSERT INTO blogs (user_id, title, text, created_at) VALUES (?, ?, ?, UTC_TIMESTAMP())';
+    const insertSql = 'INSERT INTO blogs (user_id, topic, title, text, created_at) VALUES (?, ?, ?, ?, UTC_TIMESTAMP())';
     const values = [decoded.user_id, title, text];
 
     connection.query(insertSql, values, (err) => {
@@ -585,7 +585,7 @@ const server = http.createServer(async (req, res) => {
     if (!decoded) return;
   
     
-    const query = 'SELECT blog_id, text, title, created_at FROM blogs WHERE user_id = ?';
+    const query = 'SELECT blog_id, topic, text, title, created_at FROM blogs WHERE user_id = ?';
     connection.query(query, [decoded.user_id], (err, results) => {
       if (err) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -609,7 +609,7 @@ const server = http.createServer(async (req, res) => {
     }
     
     const query = `
-        SELECT b.blog_id, b.text, b.title, b.created_at, u.username
+        SELECT b.blog_id, b.topic, b.text, b.title, b.created_at, u.username
         FROM blogs b
         JOIN users u ON b.user_id = u.user_id
     `;
