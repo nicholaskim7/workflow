@@ -564,7 +564,7 @@ const server = http.createServer(async (req, res) => {
 
     // Add CURDATE() for created_at to insert the current date automatically
     const insertSql = 'INSERT INTO blogs (user_id, topic, title, text, created_at) VALUES (?, ?, ?, ?, UTC_TIMESTAMP())';
-    const values = [decoded.user_id, title, text];
+    const values = [decoded.user_id, topic, title, text];
 
     connection.query(insertSql, values, (err) => {
         if (err) {
