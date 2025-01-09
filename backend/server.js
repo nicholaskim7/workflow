@@ -675,12 +675,12 @@ const server = http.createServer(async (req, res) => {
   const conditions = [];
   const params = [];
   if (topic) {
-    conditions.push('b.topic = ?');
-    params.push(topic);
+    conditions.push('b.topic LIKE ?');
+    params.push(`%${topic}%`); // Use LIKE with wildcards for partial matches
   }
   if (username) {
-    conditions.push('u.username = ?');
-    params.push(username);
+    conditions.push('u.username LIKE ?');
+    params.push(`%${username}%`); // Use LIKE with wildcards for partial matches
   }
 
   if (conditions.length > 0) {
