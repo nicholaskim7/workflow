@@ -637,6 +637,68 @@ const server = http.createServer(async (req, res) => {
     });
   }
 
+      
+  else if (req.method === 'GET' && req.url.startsWith('/blog-search')) {
+  const decoded = authenticateToken(req, res);
+
+  if (!decoded) {
+    res.writeHead(401, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ message: 'Unauthorized' }));
+    return;
+  }
+
+  // Extract query parameters from the URL
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const topic = url.searchParams.get('topic');
+  const username = url.searchParams.get('username');
+
+  // Base query
+  let query = `
+      SELECT 
+          b.blog_id, 
+          b.topic, 
+          b.text, 
+          b.title, 
+          b.created_at, 
+          u.username
+      FROM 
+          blogs b
+      JOIN 
+          users u 
+      ON 
+          b.user_id = u.user_id
+      WHERE 
+          b.flagged = FALSE
+  `;
+
+  // Add conditions based on the provided query parameters
+  const conditions = [];
+  const params = [];
+  if (topic) {
+    conditions.push('b.topic = ?');
+    params.push(topic);
+  }
+  if (username) {
+    conditions.push('u.username = ?');
+    params.push(username);
+  }
+
+  if (conditions.length > 0) {
+    query += ` AND ${conditions.join(' AND ')}`;
+  }
+
+  connection.query(query, params, (err, results) => {
+    if (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ message: 'Database error' }));
+      return;
+    }
+
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(results));
+  });
+}
+
   // Flag a post by ID instead of deleting it
     else if (req.method === 'DELETE' && req.url.startsWith('/post/')) {
         const decoded = authenticateToken(req, res);
