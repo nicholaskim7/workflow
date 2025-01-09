@@ -585,7 +585,7 @@ const server = http.createServer(async (req, res) => {
     if (!decoded) return;
   
     
-    const query = 'SELECT blog_id, topic, text, title, created_at FROM blogs WHERE user_id = ?';
+    const query = 'SELECT blog_id, topic, text, title, created_at FROM blogs WHERE user_id = ? AND flagged = FALSE';
     connection.query(query, [decoded.user_id], (err, results) => {
       if (err) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -611,6 +611,7 @@ const server = http.createServer(async (req, res) => {
     const query = `
         SELECT b.blog_id, b.topic, b.text, b.title, b.created_at, u.username
         FROM blogs b
+        WHERE b.flagged = FALSE'
         JOIN users u ON b.user_id = u.user_id
     `;
     connection.query(query, (err, results) => {
@@ -624,6 +625,34 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify(results));
     });
   }
+
+  // Flag a post by ID instead of deleting it
+    else if (req.method === 'DELETE' && req.url.startsWith('/post/')) {
+        const decoded = authenticateToken(req, res);
+        if (!decoded) return;
+    
+        const postId = req.url.split('/')[2];
+    
+        // Update the task's 'flagged' status to true
+        const flagSql = 'UPDATE blogs SET flagged = TRUE WHERE blog_id = ? AND user_id = ?';
+    
+        connection.query(flagSql, [postId, decoded.user_id], (err, results) => {
+            if (err) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ message: 'Error flagging post' }));
+                return;
+            }
+    
+            if (results.affectedRows === 0) {
+                res.writeHead(404, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ message: 'Post not found or not authorized' }));
+                return;
+            }
+    
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'Post flagged successfully' }));
+        });
+    }
 
 
     // Default route
