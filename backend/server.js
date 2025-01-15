@@ -598,18 +598,45 @@ const server = http.createServer(async (req, res) => {
     });
   }
 
-  else if (req.method === 'PATCH' && req.url === '/update-blog') {
-    const decoded = authenticateToken(req, res);
-    if (!decoded) return;
+  //fetch blog post to update
+  if (req.method === 'GET' && req.url.startsWith('/post/')) {
+    const blogId = req.url.split('/')[2];  // Extract the blog_id from the URL
 
-    const PostData = await getRequestData(req);
-    const { topic, title, text, blog_id } = PostData;
-
-    if (!blog_id) {
+    if (!blogId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ message: 'Blog ID is required.' }));
         return;
     }
+
+    try {
+        // Query to get the blog post by blog_id
+        const query = 'SELECT * FROM blog_posts WHERE blog_id = ?';
+        const result = await executeQuery(query, [blogId]);
+
+        if (result.length > 0) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(result[0])); // Send the blog data as response
+        } else {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'Post not found.' }));
+        }
+    } catch (err) {
+        console.error('Error fetching post:', err);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Failed to fetch post.' }));
+    }
+}
+
+
+//update blog post
+if (req.method === 'PATCH' && req.url.startsWith('/post/')) {
+    const blogId = req.url.split('/')[2];  // Extract the blog_id from the URL
+
+    const decoded = authenticateToken(req, res);
+    if (!decoded) return;
+
+    const PostData = await getRequestData(req);
+    const { topic, title, text } = PostData;
 
     if (!topic && !title && !text) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -633,21 +660,14 @@ const server = http.createServer(async (req, res) => {
         values.push(text);
     }
 
-    if (fields.length === 0) {
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ message: 'No valid fields to update.' }));
-        return;
-    }
-
-    // Add blog_id and user_id to values for the query
-    values.push(blog_id);
+    values.push(blogId);
     values.push(decoded.user_id);
 
     const query = `UPDATE blog_posts SET ${fields.join(', ')} WHERE blog_id = ? AND user_id = ?`;
 
     try {
         const result = await executeQuery(query, values);
-        
+
         if (result.affectedRows > 0) {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ message: 'Post updated successfully.' }));
@@ -661,6 +681,7 @@ const server = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ message: 'Failed to update post.' }));
     }
 }
+
 
   //fetch all blog posts
   else if (req.method === 'GET' && req.url === '/blog-all') {
