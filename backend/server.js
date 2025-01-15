@@ -629,17 +629,13 @@ const server = http.createServer(async (req, res) => {
 }
 
 
-// Handle PATCH request to update the blog post
+// Update blog post
 else if (req.method === 'PATCH' && req.url.startsWith('/post/')) {
     const blogId = req.url.split('/')[2];  // Extract blog_id from the URL
     console.log("Blog ID to update:", blogId);
 
     const decoded = authenticateToken(req, res); // Authenticate the user
-    if (!decoded) {
-        res.writeHead(401, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ message: 'Unauthorized' }));
-        return;
-    }
+    if (!decoded) return;
 
     const PostData = await getRequestData(req); // Get updated post data from the request body
     const { topic, title, text } = PostData;
@@ -672,27 +668,29 @@ else if (req.method === 'PATCH' && req.url.startsWith('/post/')) {
     values.push(decoded.user_id); // Add user_id to ensure only the owner's blog can be updated
 
     // Construct the SQL query
-    const query = `UPDATE blogs SET ${fields.join(', ')} WHERE blog_id = ? AND user_id = ?`;
+    const updateSql = `UPDATE blogs SET ${fields.join(', ')} WHERE blog_id = ? AND user_id = ?`;
 
     // Execute the query directly using db.query
-    db.query(query, values, (err, result) => {
+    connection.query(updateSql, values, (err, results) => {
         if (err) {
-            console.error('Error updating post:', err);
+            console.error('Error updating blog post:', err);
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ message: 'Failed to update post.' }));
             return;
         }
 
         // Check if any rows were affected (successful update)
-        if (result.affectedRows > 0) {
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ message: 'Post updated successfully.' }));
-        } else {
+        if (results.affectedRows === 0) {
             res.writeHead(404, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ message: 'Post not found or unauthorized.' }));
+            return;
         }
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Post updated successfully.' }));
     });
 }
+
 
   //fetch all blog posts
   else if (req.method === 'GET' && req.url === '/blog-all') {
