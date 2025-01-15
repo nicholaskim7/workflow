@@ -679,6 +679,10 @@ const server = http.createServer(async (req, res) => {
     conditions.push('u.username LIKE ?');
     params.push(`%${username}%`);
   }
+  if (title) {
+    conditions.push('b.title LIKE ?');
+    params.push(`%${title}%`);
+  }
 
   if (conditions.length > 0) {
     query += ` AND (${conditions.join(' OR ')})`;
