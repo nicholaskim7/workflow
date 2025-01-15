@@ -629,23 +629,29 @@ const server = http.createServer(async (req, res) => {
 }
 
 
-//update blog post
+// Handle PATCH request to update the blog post
 else if (req.method === 'PATCH' && req.url.startsWith('/post/')) {
-    const blogId = req.url.split('/')[2];  // Extract the blog_id from the URL
+    const blogId = req.url.split('/')[2];  // Extract blog_id from the URL
+    console.log("Blog ID to update:", blogId);
 
-    const decoded = authenticateToken(req, res);
-    console.log("Decoded token:", decoded);
-    if (!decoded) return;
+    const decoded = authenticateToken(req, res); // Authenticate the user
+    if (!decoded) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Unauthorized' }));
+        return;
+    }
 
-    const PostData = await getRequestData(req);
+    const PostData = await getRequestData(req); // Get updated post data from the request body
     const { topic, title, text } = PostData;
 
+    // Ensure at least one field is provided to update
     if (!topic && !title && !text) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ message: 'No fields provided to update.' }));
         return;
     }
 
+    // Create the fields to update dynamically
     const fields = [];
     const values = [];
 
@@ -662,14 +668,17 @@ else if (req.method === 'PATCH' && req.url.startsWith('/post/')) {
         values.push(text);
     }
 
-    values.push(blogId);
-    values.push(decoded.user_id);
+    values.push(blogId); // Add blogId to values for the WHERE clause
+    values.push(decoded.user_id); // Add user_id to ensure only the owner's blog can be updated
 
+    // Construct the SQL query
     const query = `UPDATE blogs SET ${fields.join(', ')} WHERE blog_id = ? AND user_id = ?`;
 
     try {
-        const result = await executeQuery(query, values);
+        // Execute the query using a MySQL client (like mysql2 or sequelize)
+        const [result] = await promisePool.query(query, values);
 
+        // Check if any rows were affected (successful update)
         if (result.affectedRows > 0) {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ message: 'Post updated successfully.' }));
