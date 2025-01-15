@@ -601,6 +601,7 @@ const server = http.createServer(async (req, res) => {
   //fetch blog post to update
   else if (req.method === 'GET' && req.url.startsWith('/post/')) {
     const blogId = req.url.split('/')[2];  // Extract the blog_id from the URL
+    console.log("Fetched blog ID:", blogId);
 
     if (!blogId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -633,6 +634,7 @@ else if (req.method === 'PATCH' && req.url.startsWith('/post/')) {
     const blogId = req.url.split('/')[2];  // Extract the blog_id from the URL
 
     const decoded = authenticateToken(req, res);
+    console.log("Decoded token:", decoded);
     if (!decoded) return;
 
     const PostData = await getRequestData(req);
