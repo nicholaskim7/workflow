@@ -599,7 +599,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   //fetch blog post to update
-  if (req.method === 'GET' && req.url.startsWith('/post/')) {
+  else if (req.method === 'GET' && req.url.startsWith('/post/')) {
     const blogId = req.url.split('/')[2];  // Extract the blog_id from the URL
 
     if (!blogId) {
@@ -629,7 +629,7 @@ const server = http.createServer(async (req, res) => {
 
 
 //update blog post
-if (req.method === 'PATCH' && req.url.startsWith('/post/')) {
+else if (req.method === 'PATCH' && req.url.startsWith('/post/')) {
     const blogId = req.url.split('/')[2];  // Extract the blog_id from the URL
 
     const decoded = authenticateToken(req, res);
