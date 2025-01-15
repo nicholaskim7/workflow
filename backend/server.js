@@ -674,9 +674,14 @@ else if (req.method === 'PATCH' && req.url.startsWith('/post/')) {
     // Construct the SQL query
     const query = `UPDATE blogs SET ${fields.join(', ')} WHERE blog_id = ? AND user_id = ?`;
 
-    try {
-        // Execute the query using a MySQL client (like mysql2 or sequelize)
-        const [result] = await promisePool.query(query, values);
+    // Execute the query directly using db.query
+    db.query(query, values, (err, result) => {
+        if (err) {
+            console.error('Error updating post:', err);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'Failed to update post.' }));
+            return;
+        }
 
         // Check if any rows were affected (successful update)
         if (result.affectedRows > 0) {
@@ -686,13 +691,8 @@ else if (req.method === 'PATCH' && req.url.startsWith('/post/')) {
             res.writeHead(404, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ message: 'Post not found or unauthorized.' }));
         }
-    } catch (err) {
-        console.error('Error updating post:', err);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ message: 'Failed to update post.' }));
-    }
+    });
 }
-
 
   //fetch all blog posts
   else if (req.method === 'GET' && req.url === '/blog-all') {
