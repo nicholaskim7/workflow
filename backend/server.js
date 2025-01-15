@@ -610,7 +610,7 @@ const server = http.createServer(async (req, res) => {
 
     try {
         // Query to get the blog post by blog_id
-        const query = 'SELECT * FROM blog_posts WHERE blog_id = ?';
+        const query = 'SELECT * FROM blogs WHERE blog_id = ?';
         const result = await executeQuery(query, [blogId]);
 
         if (result.length > 0) {
@@ -663,7 +663,7 @@ if (req.method === 'PATCH' && req.url.startsWith('/post/')) {
     values.push(blogId);
     values.push(decoded.user_id);
 
-    const query = `UPDATE blog_posts SET ${fields.join(', ')} WHERE blog_id = ? AND user_id = ?`;
+    const query = `UPDATE blogs SET ${fields.join(', ')} WHERE blog_id = ? AND user_id = ?`;
 
     try {
         const result = await executeQuery(query, values);
