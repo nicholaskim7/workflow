@@ -650,6 +650,7 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const topic = url.searchParams.get('topic');
   const username = url.searchParams.get('username');
+  const title = url.searchParams.get('title');
 
   let query = `
       SELECT 
